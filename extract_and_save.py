@@ -80,18 +80,18 @@ def split_text_into_parts(text: str, num_parts: int) -> List[str]:
     
     return parts[:num_parts]  # Ограничиваем максимальным количеством
 
-def determine_num_parts(text_length: int) -> int:
+def determine_num_parts(text_length: int, max_chars_per_part: int, min_parts: int, max_parts: int) -> int:
     """
     Определяет оптимальное количество частей для документа.
     """
-    if text_length <= MAX_CHARS_PER_PART:
+    if text_length <= max_chars_per_part:
         return 1  # Не нужно разделять
     
     # Вычисляем минимальное необходимое количество частей
-    min_required = math.ceil(text_length / MAX_CHARS_PER_PART)
+    min_required = math.ceil(text_length / max_chars_per_part)
     
-    # Ограничиваем между MIN_PARTS и MAX_PARTS
-    num_parts = max(MIN_PARTS, min(min_required, MAX_PARTS))
+    # Ограничиваем между min_parts и max_parts
+    num_parts = max(min_parts, min(min_required, max_parts))
     
     return num_parts
 
@@ -127,7 +127,7 @@ def extract_text_from_pdf(pdf_path: Path) -> Tuple[str, int, str]:
     
     return full_text, total_pages, error_msg
 
-def process_pdf(pdf_file: Path, output_dir: Path, stats: dict) -> None:
+def process_pdf(pdf_file: Path, output_dir: Path, stats: dict, max_chars_per_part: int, min_parts: int, max_parts: int) -> None:
     """
     Обрабатывает один PDF файл.
     """
@@ -147,7 +147,7 @@ def process_pdf(pdf_file: Path, output_dir: Path, stats: dict) -> None:
     
     # Определяем, нужно ли разделять документ
     text_length = len(full_text)
-    num_parts = determine_num_parts(text_length)
+    num_parts = determine_num_parts(text_length, max_chars_per_part, min_parts, max_parts)
     
     # Очищаем имя файла
     base_name = sanitize_filename(pdf_file.stem)
@@ -251,11 +251,10 @@ def main():
     
     args = parser.parse_args()
     
-    # Обновляем глобальные настройки из аргументов
-    global MAX_CHARS_PER_PART, MIN_PARTS, MAX_PARTS
-    MAX_CHARS_PER_PART = args.max_chars
-    MIN_PARTS = args.min_parts
-    MAX_PARTS = args.max_parts
+    # Получаем настройки из аргументов
+    max_chars_per_part = args.max_chars
+    min_parts = args.min_parts
+    max_parts = args.max_parts
     
     # Находим PDF файлы
     search_dir = Path(args.directory)
@@ -290,7 +289,7 @@ def main():
     
     # Обрабатываем каждый PDF
     for pdf_file in pdf_files:
-        process_pdf(pdf_file, output_dir, stats)
+        process_pdf(pdf_file, output_dir, stats, max_chars_per_part, min_parts, max_parts)
     
     # Выводим итоговую статистику
     print("\n" + "="*60)
